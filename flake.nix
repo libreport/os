@@ -18,6 +18,7 @@
       mongodb = ./modules/mongodb;
       sops    = ./modules/sops;
       users   = ./modules/users;
+      frp-server = ./modules/frp-server;
     };
 
     # Consumer host builder. `inputs` is the CONSUMER's inputs attrset (so host

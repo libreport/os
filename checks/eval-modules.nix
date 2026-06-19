@@ -20,12 +20,20 @@ let
       inputs.self.nixosModules.mongodb
       inputs.self.nixosModules.sops
       inputs.self.nixosModules.users
+      inputs.self.nixosModules.frp-server
       # nixosModules added here as they are created in Tasks 2–5.
       ({ ... }: {
         # Stubs for forced options, grown in lockstep with the modules that
-        # declare them (libreport.frp.* arrive with the frp-server module in
-        # Task 5; setting them before the option exists is a hard NixOS error).
+        # declare them. libreport.frp.* are declared by the frp-server module,
+        # so they're valid now (they were absent through Tasks 1–4).
+        libreport.frp.subDomainHost = "test.example.com";
+        libreport.frp.acmeEmail = "test@example.com";
         sops.defaultSopsFile = pkgs.writeText "secrets" "{}";
+        # The stub secrets file is a placeholder, not a real sops file, and under
+        # `nix eval` a writeText path isn't realized into the store — so disable
+        # sops-nix's "file must be in the store" assertion. Real consumer hosts
+        # use their genuine secrets.yaml and keep the default (validation on).
+        sops.validateSopsFiles = false;
 
         # Bare-system stubs so forcing `toplevel` clears NixOS' boot/fs
         # assertions. These are never deployed — they exist only so the
