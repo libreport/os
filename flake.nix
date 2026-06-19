@@ -16,6 +16,7 @@
       podman  = ./modules/base/podman.nix;
       nix     = ./modules/nix;
       mongodb = ./modules/mongodb;
+      sops    = ./modules/sops;
     };
 
     # Consumer host builder. `inputs` is the CONSUMER's inputs attrset (so host
