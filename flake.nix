@@ -17,6 +17,7 @@
       nix     = ./modules/nix;
       mongodb = ./modules/mongodb;
       sops    = ./modules/sops;
+      users   = ./modules/users;
     };
 
     # Consumer host builder. `inputs` is the CONSUMER's inputs attrset (so host
