@@ -53,5 +53,10 @@ pkgs.runCommand "eval-modules-check" {
   # missing referenced forced option throws HERE instead of at consumer build
   # time. We intentionally do NOT `deepSeq eval.config`: NixOS configs contain
   # self-referential cycles that make deepSeq stack-overflow.
-  forced = eval.config.system.build.toplevel.drvPath;
+  #
+  # unsafeDiscardStringContext is essential: a store-path string carries its
+  # derivation's outputs as build dependencies, so WITHOUT it `nix flake check`
+  # (which builds checks) would build the entire bare-NixOS toplevel. We only
+  # need the eval side-effect (forcing toplevel construction), not the build.
+  forced = builtins.unsafeDiscardStringContext eval.config.system.build.toplevel.drvPath;
 } "echo ok > $out"
