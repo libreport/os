@@ -12,6 +12,12 @@ let
     modules = [
       inputs.disko.nixosModules.disko
       inputs.sops-nix.nixosModules.sops
+      inputs.self.nixosModules.base
+      inputs.self.nixosModules.zsh
+      inputs.self.nixosModules.ssh
+      inputs.self.nixosModules.podman
+      inputs.self.nixosModules.nix
+      inputs.self.nixosModules.mongodb
       # nixosModules added here as they are created in Tasks 2–5.
       ({ ... }: {
         # Stubs for forced options, grown in lockstep with the modules that

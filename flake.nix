@@ -10,6 +10,12 @@
   outputs = { self, nixpkgs, disko, sops-nix, ... }@inputs: {
     nixosModules = {
       # Grown in Tasks 2–5: base, zsh, ssh, podman, nix, mongodb, sops, users, frp-server
+      base    = ./modules/base;
+      zsh     = ./modules/base/zsh.nix;
+      ssh     = ./modules/base/ssh.nix;
+      podman  = ./modules/base/podman.nix;
+      nix     = ./modules/nix;
+      mongodb = ./modules/mongodb;
     };
 
     # Consumer host builder. `inputs` is the CONSUMER's inputs attrset (so host
