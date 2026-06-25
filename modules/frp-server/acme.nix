@@ -47,7 +47,7 @@ in
         extraDomainNames = [ frpDomain ];
         dnsProvider = acme.provider;
         inherit environmentFile;
-        reloadServices = [ "frp-libreport" ];
+        reloadServices = [ "frp-libreport" "nginx" ];
         # Uncomment for the Let's Encrypt staging CA (browser warnings, no rate limit):
         # extraLegoFlags = [ "--server" "https://acme-staging-v02.api.letsencrypt.org/directory" ];
       };

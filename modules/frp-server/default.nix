@@ -52,11 +52,11 @@ in
     };
   };
 
-  # NOTE: nginx.nix lives in this directory but is intentionally NOT imported
-  # here. The current architecture is FRP-direct on :80/:443 (no nginx front);
-  # importing nginx.nix would make nginx and frps both bind :80 and :443. It is
-  # retained for a possible future TLS-terminating front end.
-  imports = [ ./acme.nix ];
+  # nginx (nginx.nix) terminates public TLS on :443 with the *.<subDomainHost>
+  # Let's Encrypt wildcard from acme.nix, then proxies HTTP to FRP's internal
+  # vhostHTTPPort. FRP therefore must NOT bind :80/:443. TCP/UDP proxies use
+  # their own ports and are unaffected.
+  imports = [ ./acme.nix ./nginx.nix ];
 
   config = {
     environment.systemPackages = map lib.lowPrio [
@@ -79,13 +79,14 @@ in
         bindPort = 7000;
         quicBindPort = 7000;
 
-        # Virtual host ports — FRP serves HTTP on :80 and HTTPS on :443 directly,
-        # routing inbound tunnels by Host header (HTTP) and SNI (HTTPS).
-        # NOTE: FRP's vhostHTTPS is SNI passthrough — it does NOT terminate TLS
-        # with a shared cert. Each https-type frpc proxy must bring its own cert
-        # (or use http + its own TLS).
-        vhostHTTPPort = 80;
-        vhostHTTPSPort = 443;
+        # Virtual host ports — INTERNAL only. nginx (nginx.nix) owns public
+        # :80/:443, terminates TLS with the LE wildcard, then proxies HTTP here.
+        # FRP routes http-type tunnels by Host header on vhostHTTPPort (8080).
+        # vhostHTTPSPort (8443) is internal and unused publicly: FRP's vhostHTTPS
+        # is SNI passthrough with no shared cert, so public TLS is nginx's job.
+        # TCP/UDP proxies bind their own ports (7000/51820/ranges), unaffected.
+        vhostHTTPPort = 8080;
+        vhostHTTPSPort = 8443;
 
         # Port ranges to allow frpc to bind (derived from the centralized config)
         allowPorts = frpAllowPortRanges;
