@@ -1,19 +1,27 @@
 { config, lib, pkgs, ... }:
 
 let
-  # DNS-01 challenge script for 1Cloud.ru API.
-  # Pure shell script — receives paths via environment variables.
-  dnsChallengeScript = pkgs.writeShellScript "acme-dns-1cloud.sh"
-    (builtins.readFile ./acme-dns-1cloud.sh);
+  acme = config.libreport.frp.acme;
 
-  # Environment file for lego's exec DNS provider.
-  # Provides EXEC_PATH (where lego finds the script) and paths the script needs.
-  mkAcmeEnv = { sopsSecretPath }: pkgs.writeText "acme-exec-env" ''
-    EXEC_PATH=${dnsChallengeScript}
-    ACME_DNS_SECRETS=${sopsSecretPath}
-    CURL_BIN=${lib.getExe pkgs.curl}
-    JQ_BIN=${lib.getExe pkgs.jq}
+  # lego's "exec" DNS provider runs EXEC_PATH as a subprocess. We pass the
+  # consumer's credentials file via ACME_DNS_SECRETS, which the exec script
+  # sources (see README, "Pluggable DNS-01"). The script is responsible for its
+  # own runtime deps — we inject no tool paths.
+  mkExecEnv = { execScript, credsPath }: pkgs.writeText "acme-exec-env" ''
+    EXEC_PATH=${execScript}
+    ACME_DNS_SECRETS=${credsPath}
   '';
+
+  # Native providers: lego sources the credentials file directly (it must hold
+  # that provider's expected vars). exec: we wrap script + creds path into a
+  # store env file lego sources.
+  environmentFile =
+    if acme.provider == "exec"
+    then mkExecEnv {
+      inherit (acme) execScript;
+      credsPath = config.sops.secrets.frp_acme_environment.path;
+    }
+    else config.sops.secrets.frp_acme_environment.path;
 in
 {
   config = let
@@ -21,41 +29,37 @@ in
     certName = builtins.replaceStrings ["."] ["-"] frpDomain;
     certDir = "/var/lib/acme/${certName}";
   in {
+    assertions = [
+      { assertion = !(acme.provider == "exec") || acme.execScript != null;
+        message = ''libreport.frp.acme.execScript is required when provider == "exec".''; }
+      { assertion = (acme.provider == "exec") || acme.execScript == null;
+        message = ''libreport.frp.acme.execScript is only meaningful when provider == "exec".''; }
+    ];
+
     # ── ACME (Let's Encrypt) ─────────────────────────────────
-    # Automatically provisions wildcard TLS certs via DNS-01 challenge.
-    # The cert auto-renews and FRP is reloaded on renewal.
+    # Provisions wildcard TLS certs via DNS-01 using any lego DNS provider
+    # (libreport.frp.acme.provider). Auto-renews; FRP is reloaded on renewal.
     security.acme = {
       acceptTerms = true;
-      defaults.email = config.libreport.frp.acmeEmail;
+      defaults.email = acme.email;
       certs.${certName} = {
         domain = "*.${frpDomain}";
         extraDomainNames = [ frpDomain ];
-        dnsProvider = "exec";
-        environmentFile = mkAcmeEnv {
-          sopsSecretPath = config.sops.secrets.frp_acme_environment.path;
-        };
+        dnsProvider = acme.provider;
+        inherit environmentFile;
         reloadServices = [ "frp-libreport" ];
-        # Uncomment the next line to use the Let's Encrypt staging CA for testing.
-        # Staging certs will show browser warnings but don't count against rate limits.
+        # Uncomment for the Let's Encrypt staging CA (browser warnings, no rate limit):
         # extraLegoFlags = [ "--server" "https://acme-staging-v02.api.letsencrypt.org/directory" ];
       };
     };
 
     # ── FRP Control Channel TLS ──────────────────────────────
-    # Point FRP server to the auto-provisioned certs for the frpc↔frps
-    # control channel TLS (port 7000). FRP's public-facing HTTPS (:443) is
-    # SNI passthrough, so the wildcard cert is NOT used to terminate
-    # user-facing TLS here — only the control channel consumes it.
     services.frp.instances."libreport".settings = {
       transport.tls.certFile = "${certDir}/fullchain.pem";
       transport.tls.keyFile = "${certDir}/key.pem";
     };
 
     # ── Service ordering ─────────────────────────────────────
-    # FRP must wait for ACME to provision certs before starting.
-    # Without this, FRP fails on first deploy because cert files don't exist yet.
-    # SupplementaryGroups gives the FRP service access to the "acme" group
-    # so it can read the cert files (owned by root:acme by default).
     systemd.services.frp-libreport = {
       after = [ "acme-${certName}.service" ];
       wants = [ "acme-${certName}.service" ];
@@ -63,15 +67,10 @@ in
     };
 
     # ── Secrets ──────────────────────────────────────────────
-    # 1Cloud API credentials for DNS-01 challenges.
-    # Expected contents:
-    #   ONECLOUD_API_TOKEN=<token>
-    #   ONECLOUD_DOMAIN_ID=37820
-    #   ONECLOUD_DOMAIN=libreport.ru
+    # DNS-01 credentials. Contents are provider-specific (consumer's secrets.yaml):
+    #   native: lego's expected vars (e.g. CLOUDFLARE_API_TOKEN)
+    #   exec:    whatever the consumer's script sources (passed via $ACME_DNS_SECRETS)
     sops.secrets.frp_acme_environment = {
-      # The ACME renewal service runs as User=acme Group=acme.
-      # Without explicit ownership, the secret is owned by root:root (mode 0400)
-      # and the ACME service can't read the 1Cloud API credentials.
       owner = "acme";
       group = "acme";
     };
