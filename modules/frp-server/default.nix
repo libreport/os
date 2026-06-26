@@ -1,17 +1,25 @@
 { config, lib, pkgs, ... }:
 
 let
-  # Centralized port configuration — modify these to affect both
-  # the firewall and the FRP server allow list in one place.
+  # Ports opened on the host firewall. nginx (nginx.nix) owns public :80/:443
+  # as the TLS front-end; 7000 is FRP's control channel (bindPort); 51820 and
+  # the ranges below are for TCP/UDP frpc proxies; 22 is SSH. Used directly by
+  # the firewall below; FRP's own proxy allow-list is derived separately.
   allowedPorts = [ 22 80 443 7000 51820 ];
   allowedPortRanges = [
     { from = 30000; to = 32000; }
     { from = 33000; to = 34000; }
   ];
 
-  # Convert the firewall-style ranges into the shape expected by services.frp
+  # Ports FRP permits frpc proxies to bind on this server. Excludes :80/:443 —
+  # nginx terminates those publicly, so no proxy may (or could) bind them. Kept
+  # distinct from `allowedPorts` so host-ingress (firewall) and proxy-bind
+  # (FRP allowPorts) don't get conflated.
+  frpProxyPorts = lib.subtractLists [ 80 443 ] allowedPorts;
+
+  # Convert the port/range lists into the {start,end;} shape services.frp wants.
   frpAllowPortRanges =
-    (map (p: { start = p; end = p; }) allowedPorts)
+    (map (p: { start = p; end = p; }) frpProxyPorts)
     ++ (map (r: { start = r.from; end = r.to; }) allowedPortRanges);
 in
 {

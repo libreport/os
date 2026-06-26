@@ -52,6 +52,8 @@ let
         assertions = [
           { assertion = config.services.nginx.enable;
             message = "frp-server: nginx.nix front-end must be enabled to terminate public TLS"; }
+          { assertion = config.services.nginx.virtualHosts.${config.libreport.frp.subDomainHost}.forceSSL or false;
+            message = "frp-server: nginx vhost must forceSSL (HTTP→HTTPS redirect) for the public front-end"; }
           { assertion = (config.services.frp.instances."libreport".settings.vhostHTTPPort or null) == 8080;
             message = "frp-server: vhostHTTPPort must be 8080 (internal) so nginx owns :80"; }
           { assertion = (config.services.frp.instances."libreport".settings.vhostHTTPSPort or null) == 8443;
