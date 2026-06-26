@@ -19,7 +19,7 @@ in
     subDomainHost = lib.mkOption {
       type = lib.types.str;
       description = ''
-        Base domain for FRP subdomain routing (e.g. mow1.libreport.ru).
+        Base domain for FRP subdomain routing (e.g. cell.example.com).
         Required on purpose — it has no default so a host that forgets to set
         it fails to build rather than silently routing tunnels to the wrong
         domain. (Previously leaked as a mkDefault of the operator's domain.)
