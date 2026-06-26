@@ -41,5 +41,6 @@
       };
 
     checks.x86_64-linux.eval-modules = import ./checks/eval-modules.nix inputs;
+    checks.x86_64-linux.eval-modules-exec = import ./checks/eval-modules-exec.nix inputs;
   };
 }
