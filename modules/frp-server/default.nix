@@ -25,9 +25,30 @@ in
         domain. (Previously leaked as a mkDefault of the operator's domain.)
       '';
     };
-    acmeEmail = lib.mkOption {
-      type = lib.types.str;
-      description = "Email for ACME (Let's Encrypt) registration. Required.";
+    acme = {
+      email = lib.mkOption {
+        type = lib.types.str;
+        description = "Email for ACME (Let's Encrypt) registration. Required.";
+      };
+
+      provider = lib.mkOption {
+        type = lib.types.str;
+        description = ''
+          lego DNS provider name, e.g. "cloudflare", "route53", "exec".
+          For "exec", set `execScript` — the module wires EXEC_PATH for you.
+        '';
+      };
+
+      execScript = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        description = ''
+          Executable store path called by lego's exec provider.
+          Required iff provider == "exec"; ignored otherwise. Must be an
+          executable (e.g. `lib.getExe (pkgs.writeShellApplication {...})`),
+          not a package root. Must wrap its own runtime deps (curl, jq, …).
+        '';
+      };
     };
   };
 

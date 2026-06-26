@@ -27,7 +27,8 @@ let
         # declare them. libreport.frp.* are declared by the frp-server module,
         # so they're valid now (they were absent through Tasks 1–4).
         libreport.frp.subDomainHost = "test.example.com";
-        libreport.frp.acmeEmail = "test@example.com";
+        libreport.frp.acme.email    = "test@example.com";
+        libreport.frp.acme.provider = "cloudflare";   # native branch — no execScript
         sops.defaultSopsFile = pkgs.writeText "secrets" "{}";
         # The stub secrets file is a placeholder, not a real sops file, and under
         # `nix eval` a writeText path isn't realized into the store — so disable
