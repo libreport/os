@@ -1,17 +1,25 @@
 { config, lib, pkgs, ... }:
 
 let
-  # Centralized port configuration — modify these to affect both
-  # the firewall and the FRP server allow list in one place.
+  # Ports opened on the host firewall. nginx (nginx.nix) owns public :80/:443
+  # as the TLS front-end; 7000 is FRP's control channel (bindPort); 51820 and
+  # the ranges below are for TCP/UDP frpc proxies; 22 is SSH. Used directly by
+  # the firewall below; FRP's own proxy allow-list is derived separately.
   allowedPorts = [ 22 80 443 7000 51820 ];
   allowedPortRanges = [
     { from = 30000; to = 32000; }
     { from = 33000; to = 34000; }
   ];
 
-  # Convert the firewall-style ranges into the shape expected by services.frp
+  # Ports FRP permits frpc proxies to bind on this server. Excludes :80/:443 —
+  # nginx terminates those publicly, so no proxy may (or could) bind them. Kept
+  # distinct from `allowedPorts` so host-ingress (firewall) and proxy-bind
+  # (FRP allowPorts) don't get conflated.
+  frpProxyPorts = lib.subtractLists [ 80 443 ] allowedPorts;
+
+  # Convert the port/range lists into the {start,end;} shape services.frp wants.
   frpAllowPortRanges =
-    (map (p: { start = p; end = p; }) allowedPorts)
+    (map (p: { start = p; end = p; }) frpProxyPorts)
     ++ (map (r: { start = r.from; end = r.to; }) allowedPortRanges);
 in
 {
@@ -19,7 +27,7 @@ in
     subDomainHost = lib.mkOption {
       type = lib.types.str;
       description = ''
-        Base domain for FRP subdomain routing (e.g. mow1.libreport.ru).
+        Base domain for FRP subdomain routing (e.g. cell.example.com).
         Required on purpose — it has no default so a host that forgets to set
         it fails to build rather than silently routing tunnels to the wrong
         domain. (Previously leaked as a mkDefault of the operator's domain.)
@@ -52,11 +60,11 @@ in
     };
   };
 
-  # NOTE: nginx.nix lives in this directory but is intentionally NOT imported
-  # here. The current architecture is FRP-direct on :80/:443 (no nginx front);
-  # importing nginx.nix would make nginx and frps both bind :80 and :443. It is
-  # retained for a possible future TLS-terminating front end.
-  imports = [ ./acme.nix ];
+  # nginx (nginx.nix) terminates public TLS on :443 with the *.<subDomainHost>
+  # Let's Encrypt wildcard from acme.nix, then proxies HTTP to FRP's internal
+  # vhostHTTPPort. FRP therefore must NOT bind :80/:443. TCP/UDP proxies use
+  # their own ports and are unaffected.
+  imports = [ ./acme.nix ./nginx.nix ];
 
   config = {
     environment.systemPackages = map lib.lowPrio [
@@ -79,13 +87,14 @@ in
         bindPort = 7000;
         quicBindPort = 7000;
 
-        # Virtual host ports — FRP serves HTTP on :80 and HTTPS on :443 directly,
-        # routing inbound tunnels by Host header (HTTP) and SNI (HTTPS).
-        # NOTE: FRP's vhostHTTPS is SNI passthrough — it does NOT terminate TLS
-        # with a shared cert. Each https-type frpc proxy must bring its own cert
-        # (or use http + its own TLS).
-        vhostHTTPPort = 80;
-        vhostHTTPSPort = 443;
+        # Virtual host ports — INTERNAL only. nginx (nginx.nix) owns public
+        # :80/:443, terminates TLS with the LE wildcard, then proxies HTTP here.
+        # FRP routes http-type tunnels by Host header on vhostHTTPPort (8080).
+        # vhostHTTPSPort (8443) is internal and unused publicly: FRP's vhostHTTPS
+        # is SNI passthrough with no shared cert, so public TLS is nginx's job.
+        # TCP/UDP proxies bind their own ports (7000/51820/ranges), unaffected.
+        vhostHTTPPort = 8080;
+        vhostHTTPSPort = 8443;
 
         # Port ranges to allow frpc to bind (derived from the centralized config)
         allowPorts = frpAllowPortRanges;

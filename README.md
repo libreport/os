@@ -30,7 +30,7 @@ sops-nix and passes `inputs` through as `specialArgs` (so host files can read
 
 | Option | Example |
 |---|---|
-| `libreport.frp.subDomainHost` | `"mow1.libreport.ru"` |
+| `libreport.frp.subDomainHost` | `"cell.example.com"` |
 | `libreport.frp.acme.email` | `"you@example.com"` |
 | `libreport.frp.acme.provider` | `"cloudflare"` / `"route53"` / `"exec"` |
 

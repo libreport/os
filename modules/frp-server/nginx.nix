@@ -4,11 +4,11 @@
 # and exposes the FRP dashboard on a dedicated subdomain.
 #
 # Architecture:
-#   Client → https://sub.mow1.libreport.ru:443 → nginx (TLS termination)
+#   Client → https://sub.cell.example.com:443 → nginx (TLS termination)
 #                                                  → http://127.0.0.1:8080 → FRP (vhost routing by Host header)
 #                                                                                   → frpc → local service
 #
-#   Admin  → https://dashboard.mow1.libreport.ru:443 → nginx (TLS termination)
+#   Admin  → https://dashboard.cell.example.com:443 → nginx (TLS termination)
 #                                                       → http://127.0.0.1:7500 → FRP dashboard
 #
 # Port 80 redirects all HTTP traffic to HTTPS.
