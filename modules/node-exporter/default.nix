@@ -23,13 +23,23 @@
         Address for node-exporter to bind to.
         Set to a Tailscale / WireGuard interface IP to restrict access
         to the monitoring network only.
+
+        Note: the default `0.0.0.0` binds on all interfaces, but the
+        firewall stays closed unless `openFirewall` is explicitly set
+        to `true`. With Tailscale, metrics are reachable over the
+        tunnel regardless of this setting.
       '';
     };
 
     openFirewall = lib.mkOption {
       type = lib.types.bool;
-      default = true;
-      description = "Open the firewall for the node-exporter port.";
+      default = false;
+      description = ''
+        Open the firewall for the node-exporter port.
+        Disabled by default — set to `true` only if metrics must be
+        scraped over a non-tunnel interface. With Tailscale, leave
+        this off.
+      '';
     };
 
     extraFlags = lib.mkOption {
@@ -59,6 +69,8 @@
         "systemd"
         "processes"
         "tcpstat"
+        # PSI (Pressure Stall Information) — requires kernel CONFIG_PSI=y.
+        # Collects nothing if PSI is unavailable; does not error.
         "pressure"
       ];
       extraFlags = config.libreport.nodeExporter.extraFlags;
