@@ -21,6 +21,7 @@ let
       inputs.self.nixosModules.sops
       inputs.self.nixosModules.users
       inputs.self.nixosModules.frp-server
+      inputs.self.nixosModules.node-exporter
       # nixosModules added here as they are created in Tasks 2–5.
       ({ ... }: {
         # Stubs for forced options, grown in lockstep with the modules that
