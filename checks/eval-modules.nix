@@ -59,8 +59,16 @@ let
             message = "frp-server: vhostHTTPPort must be 8080 (internal) so nginx owns :80"; }
           { assertion = (config.services.frp.instances."libreport".settings.vhostHTTPSPort or null) == 8443;
             message = "frp-server: vhostHTTPSPort must be 8443 (internal) so nginx owns :443"; }
-          { assertion = builtins.elem "nginx" (config.security.acme.certs.${frpCertName}.reloadServices or [ ]);
-            message = "frp-server: 'nginx' must be in the LE cert reloadServices (else stale cert after renewal)"; }
+          { # nginx must be reloaded when the LE cert renews, else it keeps the
+            # old cert in memory and eventually serves a stale/expired one.
+            # reloadServices would satisfy this too, but its `try-reload-or-restart`
+            # can strand nginx at boot (see modules/frp-server/acme.nix), so the
+            # module reloads nginx via postRun (SIGHUP-only). Accept either.
+            assertion =
+              let cert = config.security.acme.certs.${frpCertName}; in
+                 (builtins.elem "nginx" (cert.reloadServices or [ ]))
+              || (pkgs.lib.hasInfix "nginx" (cert.postRun or "") && pkgs.lib.hasInfix "reload" (cert.postRun or ""));
+            message = "frp-server: nginx must be reloaded on LE cert renewal (via reloadServices or a postRun that reloads nginx), else it serves a stale cert"; }
         ];
       })
     ];
