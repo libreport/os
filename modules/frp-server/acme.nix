@@ -47,7 +47,16 @@ in
         extraDomainNames = [ frpDomain ];
         dnsProvider = acme.provider;
         inherit environmentFile;
-        reloadServices = [ "frp-libreport" "nginx" ];
+        # nginx defines ExecReload, so reloadServices' `try-reload-or-restart`
+        # can strand it (stop issued, no follow-up start) when a real renewal
+        # races nginx startup at boot. Reload nginx explicitly here instead —
+        # `systemctl reload` only sends SIGHUP (re-reads ssl_certificate) and can
+        # never STOP the unit, so it can't strand it. `|| true` keeps a
+        # momentarily-down nginx from failing the renewal.
+        # frp-libreport has NO ExecReload, so it stays on reloadServices (full
+        # restart, which it survives).
+        reloadServices = [ "frp-libreport" ];
+        postRun = "systemctl --no-block reload nginx.service || true";
         # Uncomment for the Let's Encrypt staging CA (browser warnings, no rate limit):
         # extraLegoFlags = [ "--server" "https://acme-staging-v02.api.letsencrypt.org/directory" ];
       };
