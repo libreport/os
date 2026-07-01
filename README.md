@@ -52,12 +52,6 @@ sops-nix and passes `inputs` through as `specialArgs` (so host files can read
 
 The consumer must also set `sops.defaultSopsFile`.
 
-## ⚠️ MongoDB credentials are placeholders
-
-`modules/mongodb` ships with `MONGO_INITDB_ROOT_PASSWORD = "supersecret"` and
-Mongo Express basic auth disabled. Override these before relying on this module
-in production.
-
 ## Pluggable DNS-01
 
 `libreport.frp.acme.provider` selects any lego DNS provider.
@@ -67,4 +61,4 @@ in production.
 
 ## Modules
 
-`base`, `zsh`, `ssh`, `podman`, `nix`, `sops`, `users`, `frp-server`, `mongodb`.
+`base`, `zsh`, `ssh`, `podman`, `nix`, `sops`, `users`, `frp-server`.

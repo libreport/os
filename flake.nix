@@ -9,13 +9,12 @@
 
   outputs = { self, nixpkgs, disko, sops-nix, ... }@inputs: {
     nixosModules = {
-      # Grown in Tasks 2–5: base, zsh, ssh, podman, nix, mongodb, sops, users, frp-server
+      # Grown in Tasks 2–5: base, zsh, ssh, podman, nix, sops, users, frp-server
       base    = ./modules/base;
       zsh     = ./modules/base/zsh.nix;
       ssh     = ./modules/base/ssh.nix;
       podman  = ./modules/base/podman.nix;
       nix     = ./modules/nix;
-      mongodb = ./modules/mongodb;
       sops    = ./modules/sops;
       users   = ./modules/users;
       frp-server = ./modules/frp-server;

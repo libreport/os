@@ -17,7 +17,6 @@ let
       inputs.self.nixosModules.ssh
       inputs.self.nixosModules.podman
       inputs.self.nixosModules.nix
-      inputs.self.nixosModules.mongodb
       inputs.self.nixosModules.sops
       inputs.self.nixosModules.users
       inputs.self.nixosModules.frp-server
