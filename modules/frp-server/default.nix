@@ -5,7 +5,14 @@ let
   # as the TLS front-end; 7000 is FRP's control channel (bindPort); 51820 and
   # the ranges below are for TCP/UDP frpc proxies; 22 is SSH. Used directly by
   # the firewall below; FRP's own proxy allow-list is derived separately.
-  allowedPorts = [ 22 80 443 7000 51820 ];
+  allowedPorts = [
+    22    # SSH
+    80    # http
+    443   # https
+    3478  # Headscale DERP (udp/3478)
+    7000  # FRP server port
+    51820 # wireguard
+  ];
   allowedPortRanges = [
     { from = 30000; to = 32000; }
     { from = 33000; to = 34000; }
