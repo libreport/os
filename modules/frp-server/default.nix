@@ -1,17 +1,14 @@
 { config, lib, pkgs, ... }:
 
 let
-  # Ports opened on the host firewall. nginx (nginx.nix) owns public :80/:443
-  # as the TLS front-end; 7000 is FRP's control channel (bindPort); 51820 and
-  # the ranges below are for TCP/UDP frpc proxies; 22 is SSH. Used directly by
-  # the firewall below; FRP's own proxy allow-list is derived separately.
+  # Ports opened on the host firewall.
   allowedPorts = [
     22    # SSH
     80    # http
     443   # https
     3478  # Headscale DERP (udp/3478)
     7000  # FRP server port
-    51820 # wireguard
+    51820 # Wireguard
   ];
   allowedPortRanges = [
     { from = 30000; to = 32000; }
