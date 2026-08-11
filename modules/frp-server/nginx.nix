@@ -26,10 +26,16 @@ in
       recommendedProxySettings = true;
 
       # Rate limit zones.
-      # frp:       10r/s per IP for user tunnels (~160k unique IPs in 10m).
+      # frp: 20r/s, burst=100 per IP for user tunnels. The burst is deliberately high
+      #       (served nodelay) so a browser loading a rich SPA isn't 429'd mid-bootstrap:
+      #       immich fires ~50 parallel requests on first paint (JS chunks + bootstrap
+      #       APIs + socket.io handshake + thumbnails); a single 429 on an awaited
+      #       bootstrap call freezes the app on its loading spinner. Sustained 20r/s
+      #       still caps runaway per-IP traffic. ~160k unique IPs in 10m → per-IP keying
+      #       isolates viewers; zone sized 10m.
       # dashboard: 2r/s per IP for admin dashboard (stricter, brute-force defense).
       commonHttpConfig = ''
-        limit_req_zone $binary_remote_addr zone=frp:10m rate=10r/s;
+        limit_req_zone $binary_remote_addr zone=frp:10m rate=20r/s;
         limit_req_zone $binary_remote_addr zone=dashboard:10m rate=2r/s;
       '';
 
@@ -47,8 +53,9 @@ in
           proxyPass = "http://127.0.0.1:${toString frpHTTPPort}";
           proxyWebsockets = true;
           extraConfig = ''
-            # Rate limiting (pentest remediation #25)
-            limit_req zone=frp burst=20 nodelay;
+            # Rate limiting (pentest remediation #25; burst loosened 20→100 on 2026-08
+            # so a browser page-load burst isn't 429'd — see zone comment above).
+            limit_req zone=frp burst=100 nodelay;
             limit_req_status 429;
 
             # Security headers (pentest remediation #25)
