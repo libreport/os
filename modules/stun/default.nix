@@ -36,9 +36,18 @@ in
 
     bindAddress = lib.mkOption {
       type = lib.types.str;
+      example = "relay.example.com";
       description = ''
-        Local address derper binds both the STUN UDP socket and its status
-        TCP listener to (derper's -a flag pins the two together).
+        Address derper binds both the STUN UDP socket and its status TCP
+        listener to (derper's -a flag pins the two together). Accepts an
+        IPv4 literal or a hostname — Go resolves hostnames at listen time,
+        so the resolved address is re-picked on every service start. Using
+        the same hostname the DERP map advertises makes the bind track IP
+        changes: update the DNS record, restart the unit (or reboot), done.
+
+        Resolution happens ONCE at process start; a running derper does not
+        follow DNS. The name must resolve to an address configured on this
+        host (EADDRNOTAVAIL otherwise — loud, by design).
 
         Deliberately has no default: never wildcard-bind STUN on a relay.
         A wildcard-bound UDP socket does not remember which local address a
@@ -80,6 +89,11 @@ in
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
+      # With a hostname in bindAddress the first start can race DNS
+      # readiness at boot; let systemd keep retrying well past its default
+      # start limit (5 starts / 10s) while the resolver warms up.
+      startLimitIntervalSec = 120;
+      startLimitBurst = 24;
 
       serviceConfig = {
         # NOTE: tailscale is a multi-output package and bin/derper lives in
