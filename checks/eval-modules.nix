@@ -21,6 +21,7 @@ let
       inputs.self.nixosModules.users
       inputs.self.nixosModules.frp-server
       inputs.self.nixosModules.node-exporter
+      inputs.self.nixosModules.stun
       # nixosModules added here as they are created in Tasks 2–5.
       ({ config, ... }: let frpCertName = builtins.replaceStrings ["."] ["-"] config.libreport.frp.subDomainHost; in {
         # Stubs for forced options, grown in lockstep with the modules that
@@ -29,6 +30,10 @@ let
         libreport.frp.subDomainHost = "test.example.com";
         libreport.frp.acme.email    = "test@example.com";
         libreport.frp.acme.provider = "cloudflare";   # native branch — no execScript
+        # Force the stun module's config too (bindAddress has no default on
+        # purpose — wildcard-binding STUN is the connected-socket black hole).
+        libreport.stun.enable = true;
+        libreport.stun.bindAddress = "203.0.113.10";  # TEST-NET-3, never routed
         sops.defaultSopsFile = pkgs.writeText "secrets" "{}";
         # The stub secrets file is a placeholder, not a real sops file, and under
         # `nix eval` a writeText path isn't realized into the store — so disable

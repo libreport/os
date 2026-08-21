@@ -19,6 +19,7 @@
       users   = ./modules/users;
       frp-server = ./modules/frp-server;
       node-exporter = ./modules/node-exporter;
+      stun = ./modules/stun;
     };
 
     # Consumer host builder. `inputs` is the CONSUMER's inputs attrset (so host
